@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/colors.dart';
 import '../../auth/services/auth_provider.dart';
+import '../../profile/screens/profile_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class DashboardScreen extends StatelessWidget {
@@ -71,8 +72,11 @@ class DashboardScreen extends StatelessWidget {
               leading: const Icon(Icons.person_outline),
               title: const Text('Perfil'),
               onTap: () {
-                // Navegar para perfil
-                Navigator.pop(context);
+                Navigator.pop(context); // Fecha o drawer
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ProfileScreen()),
+                );
               },
             ),
             const Divider(),

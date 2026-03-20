@@ -143,6 +143,58 @@ class AuthProvider with ChangeNotifier {
     await _auth.signOut();
   }
 
+  /// Atualiza o nome de exibição do usuário.
+  Future<String?> updateDisplayName(String name) async {
+    _setLoading(true);
+    try {
+      await _auth.currentUser?.updateDisplayName(name);
+      await _auth.currentUser?.reload();
+      _user = _auth.currentUser;
+      _setLoading(false);
+      notifyListeners();
+      return null;
+    } on FirebaseAuthException catch (e) {
+      _setLoading(false);
+      return _getFirebaseErrorMessage(e.code);
+    } catch (e) {
+      _setLoading(false);
+      return "Erro ao atualizar nome.";
+    }
+  }
+
+  /// Atualiza o e-mail do usuário.
+  Future<String?> updateEmail(String newEmail) async {
+    _setLoading(true);
+    try {
+      // Nota: O Firebase exige login recente para mudar e-mail
+      await _auth.currentUser?.verifyBeforeUpdateEmail(newEmail);
+      _setLoading(false);
+      return null;
+    } on FirebaseAuthException catch (e) {
+      _setLoading(false);
+      return _getFirebaseErrorMessage(e.code);
+    } catch (e) {
+      _setLoading(false);
+      return "Erro ao solicitar alteração de e-mail.";
+    }
+  }
+
+  /// Exclui a conta do usuário.
+  Future<String?> deleteAccount() async {
+    _setLoading(true);
+    try {
+      await _auth.currentUser?.delete();
+      _setLoading(false);
+      return null;
+    } on FirebaseAuthException catch (e) {
+      _setLoading(false);
+      return _getFirebaseErrorMessage(e.code);
+    } catch (e) {
+      _setLoading(false);
+      return "Erro ao excluir conta.";
+    }
+  }
+
   void _setLoading(bool value) {
     _isLoading = value;
     notifyListeners();
