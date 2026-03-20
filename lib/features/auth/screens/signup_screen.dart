@@ -3,11 +3,12 @@ import 'package:provider/provider.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/widgets/bazar_button.dart';
 import '../../../core/widgets/bazar_text_field.dart';
+import '../../home/screens/dashboard_screen.dart';
 import '../services/auth_provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 /// Tela de Cadastro do Bazar.
-/// Permite que novos usuários criem uma conta.
+/// Formulário unificado com Nome, E-mail, Telefone e Senha.
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
 
@@ -18,6 +19,7 @@ class SignupScreen extends StatefulWidget {
 class _SignupScreenState extends State<SignupScreen> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
@@ -25,15 +27,17 @@ class _SignupScreenState extends State<SignupScreen> {
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
+    _phoneController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
-  void _onSignup(BuildContext context) async {
+  void _onRegister(BuildContext context) async {
     if (_formKey.currentState!.validate()) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      // O Firebase Auth não suporta 'nome' diretamente na criação rápida, 
-      // mas podemos salvar depois no Profile se necessário.
+
+      // Realiza o cadastro básico com e-mail e senha
+      // O telefone e nome seriam salvos em um banco de dados (como Firestore) em um passo seguinte
       final error = await authProvider.signUp(
         _emailController.text.trim(),
         _passwordController.text.trim(),
@@ -49,7 +53,10 @@ class _SignupScreenState extends State<SignupScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Conta criada com sucesso!'), backgroundColor: AppColors.success),
         );
-        Navigator.pop(context); // Volta para a Home Inicial
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const DashboardScreen()),
+        );
       }
     }
   }
@@ -89,22 +96,20 @@ class _SignupScreenState extends State<SignupScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Junte-se à nossa comunidade natural.',
+                    'Junte-se ao Bazar Cozy preenchendo as informações abaixo.',
                     style: GoogleFonts.poppins(
                       fontSize: 14,
                       color: AppColors.textSecondary,
                     ),
                   ),
-                  const SizedBox(height: 48),
+                  const SizedBox(height: 40),
                   BazarTextField(
                     label: 'Nome Completo',
                     hint: 'Seu Nome',
                     icon: Icons.person_outline,
                     controller: _nameController,
                     validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Informe seu nome.';
-                      }
+                      if (value == null || value.isEmpty) return 'Informe seu nome.';
                       return null;
                     },
                   ),
@@ -116,9 +121,19 @@ class _SignupScreenState extends State<SignupScreen> {
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     validator: (value) {
-                      if (value == null || value.isEmpty || !value.contains('@')) {
-                        return 'Informe um e-mail válido.';
-                      }
+                      if (value == null || value.isEmpty || !value.contains('@')) return 'Informe um e-mail válido.';
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 24),
+                  BazarTextField(
+                    label: 'Telefone',
+                    hint: '+55 11 99999-9999',
+                    icon: Icons.phone_outlined,
+                    controller: _phoneController,
+                    keyboardType: TextInputType.phone,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) return 'Informe seu telefone.';
                       return null;
                     },
                   ),
@@ -130,20 +145,17 @@ class _SignupScreenState extends State<SignupScreen> {
                     controller: _passwordController,
                     isPassword: true,
                     validator: (value) {
-                      if (value == null || value.length < 6) {
-                        return 'A senha deve ter pelo menos 6 caracteres.';
-                      }
+                      if (value == null || value.length < 6) return 'A senha deve ter pelo menos 6 caracteres.';
                       return null;
                     },
                   ),
                   const SizedBox(height: 40),
                   BazarButton(
-                    text: 'CADASTRAR',
+                    text: 'CADASTRAR AGORA',
                     isLoading: authProvider.isLoading,
-                    onPressed: () => _onSignup(context),
+                    onPressed: () => _onRegister(context),
                   ),
                   const SizedBox(height: 24),
-                  // Link para Login
                   Center(
                     child: TextButton(
                       onPressed: () => Navigator.pop(context),

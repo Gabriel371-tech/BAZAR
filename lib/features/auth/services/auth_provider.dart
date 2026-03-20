@@ -35,6 +35,93 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  /// Método para iniciar a verificação de telefone.
+  Future<void> verifyPhone(
+    String phoneNumber, {
+    required Function(String verificationId) onCodeSent,
+    required Function(String errorMessage) onError,
+  }) async {
+    _setLoading(true);
+    try {
+      await _auth.verifyPhoneNumber(
+        phoneNumber: phoneNumber,
+        verificationCompleted: (PhoneAuthCredential credential) async {
+          await _auth.signInWithCredential(credential);
+          _setLoading(false);
+        },
+        verificationFailed: (FirebaseAuthException e) {
+          _setLoading(false);
+          onError(_getFirebaseErrorMessage(e.code));
+        },
+        codeSent: (String verificationId, int? resendToken) {
+          _setLoading(false);
+          onCodeSent(verificationId);
+        },
+        codeAutoRetrievalTimeout: (String verificationId) {
+          _setLoading(false);
+        },
+      );
+    } catch (e) {
+      _setLoading(false);
+      onError("Erro ao verificar telefone.");
+    }
+  }
+
+  /// Método para completar o login com o código SMS.
+  Future<String?> signInWithOTP(String verificationId, String smsCode) async {
+    _setLoading(true);
+    try {
+      AuthCredential credential = PhoneAuthProvider.credential(
+        verificationId: verificationId,
+        smsCode: smsCode,
+      );
+      await _auth.signInWithCredential(credential);
+      _setLoading(false);
+      return null;
+    } on FirebaseAuthException catch (e) {
+      _setLoading(false);
+      return _getFirebaseErrorMessage(e.code);
+    } catch (e) {
+      _setLoading(false);
+      return "Ocorreu um erro inesperado.";
+    }
+  }
+
+  /// Método para Cadastrar com E-mail e vincular Telefone simultaneamente.
+  Future<String?> signUpWithEmailAndPhone({
+    required String email,
+    required String password,
+    required String verificationId,
+    required String smsCode,
+  }) async {
+    _setLoading(true);
+    try {
+      // 1. Criar usuário com E-mail e Senha
+      UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      // 2. Criar credencial de Telefone
+      AuthCredential phoneCredential = PhoneAuthProvider.credential(
+        verificationId: verificationId,
+        smsCode: smsCode,
+      );
+
+      // 3. Vincular o telefone à conta recém-criada
+      await userCredential.user!.linkWithCredential(phoneCredential);
+
+      _setLoading(false);
+      return null;
+    } on FirebaseAuthException catch (e) {
+      _setLoading(false);
+      return _getFirebaseErrorMessage(e.code);
+    } catch (e) {
+      _setLoading(false);
+      return "Ocorreu um erro inesperado.";
+    }
+  }
+
   /// Método para Logar um usuário existente.
   Future<String?> signIn(String email, String password) async {
     _setLoading(true);
@@ -74,8 +161,15 @@ class AuthProvider with ChangeNotifier {
         return 'A senha é muito fraca.';
       case 'invalid-email':
         return 'E-mail inválido.';
+      case 'invalid-phone-number':
+        return 'Número de telefone inválido.';
+      case 'too-many-requests':
+        return 'Muitas solicitações. Tente novamente mais tarde.';
+      case 'invalid-verification-code':
+        return 'Código de verificação inválido.';
       default:
         return 'Erro na autenticação. Tente novamente.';
+
     }
   }
 }
