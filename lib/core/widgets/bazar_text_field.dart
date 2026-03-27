@@ -12,6 +12,7 @@ class BazarTextField extends StatelessWidget {
   final TextEditingController controller;
   final String? Function(String?)? validator;
   final TextInputType keyboardType;
+  final int maxLines;
 
   const BazarTextField({
     super.key,
@@ -22,6 +23,7 @@ class BazarTextField extends StatelessWidget {
     this.isPassword = false,
     this.validator,
     this.keyboardType = TextInputType.text,
+    this.maxLines = 1,
   });
 
   @override
@@ -43,6 +45,7 @@ class BazarTextField extends StatelessWidget {
           obscureText: isPassword,
           validator: validator,
           keyboardType: keyboardType,
+          maxLines: isPassword ? 1 : maxLines,
           style: GoogleFonts.poppins(color: AppColors.textPrimary),
           decoration: InputDecoration(
             hintText: hint,

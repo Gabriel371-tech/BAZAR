@@ -36,11 +36,12 @@ class _SignupScreenState extends State<SignupScreen> {
     if (_formKey.currentState!.validate()) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
-      // Realiza o cadastro básico com e-mail e senha
-      // O telefone e nome seriam salvos em um banco de dados (como Firestore) em um passo seguinte
+      // Realiza o cadastro básico com e-mail e senha, salvando dados no Firestore
       final error = await authProvider.signUp(
         _emailController.text.trim(),
         _passwordController.text.trim(),
+        displayName: _nameController.text.trim(),
+        phoneNumber: _phoneController.text.trim(),
       );
 
       if (!context.mounted) return;

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../core/constants/colors.dart';
 import '../../auth/services/auth_provider.dart';
 import '../../profile/screens/profile_screen.dart';
+import '../../products/screens/product_list_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class DashboardScreen extends StatelessWidget {
@@ -64,8 +65,11 @@ class DashboardScreen extends StatelessWidget {
               leading: const Icon(Icons.shopping_bag_outlined),
               title: const Text('Produtos'),
               onTap: () {
-                // Navegar para produtos
                 Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ProductListScreen()),
+                );
               },
             ),
             ListTile(

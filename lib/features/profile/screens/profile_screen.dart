@@ -41,6 +41,7 @@ class ProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
     final user = authProvider.user;
+    final userData = authProvider.userData;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -72,7 +73,7 @@ class ProfileScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    user?.displayName ?? 'Usuário Bazar',
+                    userData?['displayName'] ?? user?.displayName ?? 'Usuário Bazar',
                     style: GoogleFonts.playfairDisplay(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
@@ -80,15 +81,23 @@ class ProfileScreen extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    user?.email ?? 'E-mail não informado',
+                    userData?['email'] ?? user?.email ?? 'E-mail não informado',
                     style: GoogleFonts.poppins(fontSize: 14, color: AppColors.textSecondary),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 40),
-            _buildInfoTile(icon: Icons.email_outlined, label: 'E-mail', value: user?.email ?? 'Não informado'),
-            _buildInfoTile(icon: Icons.phone_outlined, label: 'Telefone', value: user?.phoneNumber ?? 'Não informado'),
+            _buildInfoTile(
+              icon: Icons.email_outlined, 
+              label: 'E-mail', 
+              value: userData?['email'] ?? user?.email ?? 'Não informado'
+            ),
+            _buildInfoTile(
+              icon: Icons.phone_outlined, 
+              label: 'Telefone', 
+              value: userData?['phoneNumber'] ?? user?.phoneNumber ?? 'Não informado'
+            ),
             const SizedBox(height: 32),
             const Divider(),
             _buildActionTile(

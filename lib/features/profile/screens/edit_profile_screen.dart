@@ -16,41 +16,58 @@ class EditProfileScreen extends StatefulWidget {
 class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _nameController;
   late TextEditingController _emailController;
+  late TextEditingController _phoneController;
   final _formKey = GlobalKey<FormState>();
 
   @override
   void initState() {
     super.initState();
-    final user = Provider.of<AuthProvider>(context, listen: false).user;
-    _nameController = TextEditingController(text: user?.displayName);
-    _emailController = TextEditingController(text: user?.email);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final user = authProvider.user;
+    final userData = authProvider.userData;
+    
+    _nameController = TextEditingController(text: userData?['displayName'] ?? user?.displayName);
+    _emailController = TextEditingController(text: userData?['email'] ?? user?.email);
+    _phoneController = TextEditingController(text: userData?['phoneNumber'] ?? user?.phoneNumber);
   }
 
   @override
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
   void _onSave() async {
     if (_formKey.currentState!.validate()) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final userData = authProvider.userData;
       
       // Atualizar Nome
-      final nameError = await authProvider.updateDisplayName(_nameController.text.trim());
-      
-      if (!mounted) return;
+      if (_nameController.text.trim() != (userData?['displayName'] ?? authProvider.user?.displayName)) {
+        final nameError = await authProvider.updateDisplayName(_nameController.text.trim());
+        if (nameError != null && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(nameError), backgroundColor: AppColors.error),
+          );
+          return;
+        }
+      }
 
-      if (nameError != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(nameError), backgroundColor: AppColors.error),
-        );
-        return;
+      // Atualizar Telefone
+      if (_phoneController.text.trim() != (userData?['phoneNumber'] ?? authProvider.user?.phoneNumber)) {
+        final phoneError = await authProvider.updatePhoneNumber(_phoneController.text.trim());
+        if (phoneError != null && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(phoneError), backgroundColor: AppColors.error),
+          );
+          return;
+        }
       }
 
       // Se o e-mail mudou, tenta atualizar também
-      if (_emailController.text.trim() != authProvider.user?.email) {
+      if (_emailController.text.trim() != (userData?['email'] ?? authProvider.user?.email)) {
         final emailError = await authProvider.updateEmail(_emailController.text.trim());
         if (!mounted) return;
         if (emailError != null) {
@@ -67,10 +84,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         }
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Perfil atualizado!'), backgroundColor: AppColors.success),
-      );
-      Navigator.pop(context);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Perfil atualizado!'), backgroundColor: AppColors.success),
+        );
+        Navigator.pop(context);
+      }
     }
   }
 
@@ -109,6 +128,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
                 validator: (value) => value == null || !value.contains('@') ? 'Informe um e-mail válido.' : null,
+              ),
+              const SizedBox(height: 24),
+              BazarTextField(
+                label: 'Telefone',
+                hint: '+55 11 99999-9999',
+                icon: Icons.phone_outlined,
+                controller: _phoneController,
+                keyboardType: TextInputType.phone,
+                validator: (value) => value == null || value.isEmpty ? 'Informe seu telefone.' : null,
               ),
               const SizedBox(height: 40),
               BazarButton(
