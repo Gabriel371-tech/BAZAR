@@ -43,37 +43,40 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (_formKey.currentState!.validate()) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final userData = authProvider.userData;
-      
-      // Atualizar Nome
-      if (_nameController.text.trim() != (userData?['displayName'] ?? authProvider.user?.displayName)) {
-        final nameError = await authProvider.updateDisplayName(_nameController.text.trim());
-        if (nameError != null && mounted) {
+      final user = authProvider.user;
+
+      final newName = _nameController.text.trim();
+      final newPhone = _phoneController.text.trim();
+      final newEmail = _emailController.text.trim();
+
+      final currentName = userData?['displayName'] ?? user?.displayName ?? '';
+      final currentPhone = userData?['phoneNumber'] ?? user?.phoneNumber ?? '';
+      final currentEmail = userData?['email'] ?? user?.email ?? '';
+
+      // Verificar se houve mudanças no Nome ou Telefone
+      if (newName != currentName || newPhone != currentPhone) {
+        final profileError = await authProvider.updateFullProfile(
+          displayName: newName != currentName ? newName : null,
+          phoneNumber: newPhone != currentPhone ? newPhone : null,
+        );
+
+        if (profileError != null && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(nameError), backgroundColor: AppColors.error),
+            SnackBar(content: Text(profileError), backgroundColor: AppColors.error),
           );
           return;
         }
       }
 
-      // Atualizar Telefone
-      if (_phoneController.text.trim() != (userData?['phoneNumber'] ?? authProvider.user?.phoneNumber)) {
-        final phoneError = await authProvider.updatePhoneNumber(_phoneController.text.trim());
-        if (phoneError != null && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(phoneError), backgroundColor: AppColors.error),
-          );
-          return;
-        }
-      }
-
-      // Se o e-mail mudou, tenta atualizar também
-      if (_emailController.text.trim() != (userData?['email'] ?? authProvider.user?.email)) {
-        final emailError = await authProvider.updateEmail(_emailController.text.trim());
+      // Se o e-mail mudou, solicita verificação (processo separado do Firebase)
+      if (newEmail != currentEmail) {
+        final emailError = await authProvider.updateEmail(newEmail);
         if (!mounted) return;
         if (emailError != null) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(emailError), backgroundColor: AppColors.error),
           );
+          return;
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -86,7 +89,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Perfil atualizado!'), backgroundColor: AppColors.success),
+          const SnackBar(content: Text('Perfil atualizado com sucesso!'), backgroundColor: AppColors.success),
         );
         Navigator.pop(context);
       }

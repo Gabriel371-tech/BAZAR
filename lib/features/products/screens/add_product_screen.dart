@@ -19,6 +19,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final _descriptionController = TextEditingController();
   final _priceController = TextEditingController();
   final _categoryController = TextEditingController();
+  final _brandController = TextEditingController();
+  final _imageUrlController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
   @override
@@ -27,6 +29,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
     _descriptionController.dispose();
     _priceController.dispose();
     _categoryController.dispose();
+    _brandController.dispose();
+    _imageUrlController.dispose();
     super.dispose();
   }
 
@@ -40,6 +44,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
         description: _descriptionController.text.trim(),
         price: double.parse(_priceController.text.trim()),
         category: _categoryController.text.trim(),
+        brand: _brandController.text.trim(),
+        imageUrl: _imageUrlController.text.trim(),
         sellerId: authProvider.user?.uid ?? '',
       );
 
@@ -98,6 +104,22 @@ class _AddProductScreenState extends State<AddProductScreen> {
                 icon: Icons.category_outlined,
                 controller: _categoryController,
                 validator: (value) => value == null || value.isEmpty ? 'Informe a categoria.' : null,
+              ),
+              const SizedBox(height: 20),
+              BazarTextField(
+                label: 'Marca',
+                hint: 'Ex: Nike, Zara',
+                icon: Icons.branding_watermark_outlined,
+                controller: _brandController,
+                validator: (value) => value == null || value.isEmpty ? 'Informe a marca.' : null,
+              ),
+              const SizedBox(height: 20),
+              BazarTextField(
+                label: 'Link da Imagem (URL)',
+                hint: 'https://exemplo.com/imagem.jpg',
+                icon: Icons.link,
+                controller: _imageUrlController,
+                validator: (value) => value == null || value.isEmpty ? 'Informe o link da imagem.' : null,
               ),
               const SizedBox(height: 20),
               BazarTextField(

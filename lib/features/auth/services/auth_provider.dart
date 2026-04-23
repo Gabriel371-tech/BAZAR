@@ -205,46 +205,71 @@ class AuthProvider with ChangeNotifier {
     await _auth.signOut();
   }
 
-  /// Atualiza o nome de exibição do usuário no Auth e no Firestore.
-  Future<String?> updateDisplayName(String name) async {
+  /// Atualiza os dados do perfil no Firebase Auth e no Firestore de uma vez.
+  Future<String?> updateFullProfile({
+    String? displayName,
+    String? phoneNumber,
+    String? photoURL,
+  }) async {
     _setLoading(true);
     try {
       User? currentUser = _auth.currentUser;
-      if (currentUser != null) {
-        await currentUser.updateDisplayName(name);
-        
-        // Atualizar no Firestore
-        await _db.collection('users').doc(currentUser.uid).update({
-          'displayName': name,
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
+      if (currentUser == null) return "Usuário não autenticado.";
 
-        await currentUser.reload();
-        _user = _auth.currentUser;
-        await _loadUserData();
+      Map<String, dynamic> updates = {
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+
+      // Atualizar no Firebase Auth (se aplicável)
+      if (displayName != null || photoURL != null) {
+        await currentUser.updateDisplayName(displayName ?? currentUser.displayName);
+        await currentUser.updatePhotoURL(photoURL ?? currentUser.photoURL);
+        
+        if (displayName != null) updates['displayName'] = displayName;
+        if (photoURL != null) updates['photoURL'] = photoURL;
       }
+
+      // No Firestore, também atualizamos o telefone
+      if (phoneNumber != null) {
+        updates['phoneNumber'] = phoneNumber;
+      }
+
+      // Atualizar no Firestore
+      await _db.collection('users').doc(currentUser.uid).update(updates);
+
+      // Recarregar usuário para refletir mudanças no Auth
+      await currentUser.reload();
+      _user = _auth.currentUser;
+      await _loadUserData();
+
       _setLoading(false);
-      notifyListeners();
       return null;
     } on FirebaseAuthException catch (e) {
       _setLoading(false);
       return _getFirebaseErrorMessage(e.code);
     } catch (e) {
       _setLoading(false);
-      return "Erro ao atualizar nome.";
+      debugPrint("Erro ao atualizar perfil: $e");
+      return "Erro ao atualizar perfil.";
     }
   }
 
+  /// Atualiza o nome de exibição do usuário no Auth e no Firestore.
+  Future<String?> updateDisplayName(String name) async {
+    return updateFullProfile(displayName: name);
+  }
+
   /// Atualiza o e-mail do usuário no Auth e Firestore.
+  /// Nota: O e-mail no Auth só muda após a verificação do novo endereço.
   Future<String?> updateEmail(String newEmail) async {
     _setLoading(true);
     try {
       User? currentUser = _auth.currentUser;
       if (currentUser != null) {
-        // Nota: O Firebase exige login recente para mudar e-mail
+        // Solicita a alteração no Firebase Auth
         await currentUser.verifyBeforeUpdateEmail(newEmail);
         
-        // Atualiza o Firestore imediatamente (ou você pode esperar a verificação)
+        // Atualiza o Firestore (opcional: você pode preferir atualizar apenas após verificado)
         await _db.collection('users').doc(currentUser.uid).update({
           'email': newEmail,
           'updatedAt': FieldValue.serverTimestamp(),
@@ -265,22 +290,7 @@ class AuthProvider with ChangeNotifier {
 
   /// Atualiza o número de telefone no Firestore.
   Future<String?> updatePhoneNumber(String phoneNumber) async {
-    _setLoading(true);
-    try {
-      User? currentUser = _auth.currentUser;
-      if (currentUser != null) {
-        await _db.collection('users').doc(currentUser.uid).update({
-          'phoneNumber': phoneNumber,
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
-        await _loadUserData();
-      }
-      _setLoading(false);
-      return null;
-    } catch (e) {
-      _setLoading(false);
-      return "Erro ao atualizar telefone.";
-    }
+    return updateFullProfile(phoneNumber: phoneNumber);
   }
 
   /// Exclui a conta do usuário.
