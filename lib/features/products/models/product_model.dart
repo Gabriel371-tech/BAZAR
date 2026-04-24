@@ -43,7 +43,6 @@ class Product {
   factory Product.fromJson(Map<String, dynamic> json) {
     String? img = json['imagem'] ?? json['imageUrl'];
     
-    // CORREÇÃO AUTOMÁTICA PARA IMAGENS QUE FUNCIONAM NO WEB
     if (img != null && img.contains('unsplash.com')) {
       if (img.contains('1542291026')) img = 'https://images.pexels.com/photos/2529148/pexels-photo-2529148.jpeg?auto=compress&cs=tinysrgb&w=500'; // Tênis
       if (img.contains('1576871337')) img = 'https://images.pexels.com/photos/6770028/pexels-photo-6770028.jpeg?auto=compress&cs=tinysrgb&w=500'; // Jaqueta (Novo Link)

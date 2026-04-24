@@ -75,6 +75,47 @@ class ProductProvider with ChangeNotifier {
     }
   }
 
+  /// Atualiza um produto no Firestore.
+  Future<String?> updateProduct({
+    required String id,
+    required String name,
+    required String description,
+    required double price,
+    required String category,
+    required String brand,
+    required String imageUrl,
+  }) async {
+    _setLoading(true);
+    try {
+      await _db.collection('products').doc(id).update({
+        'name': name,
+        'description': description,
+        'price': price,
+        'category': category,
+        'brand': brand,
+        'imageUrl': imageUrl,
+      });
+      _setLoading(false);
+      return null;
+    } catch (e) {
+      _setLoading(false);
+      return "Erro ao atualizar produto: $e";
+    }
+  }
+
+  /// Exclui um produto do Firestore.
+  Future<String?> deleteProduct(String id) async {
+    _setLoading(true);
+    try {
+      await _db.collection('products').doc(id).delete();
+      _setLoading(false);
+      return null;
+    } catch (e) {
+      _setLoading(false);
+      return "Erro ao excluir produto: $e";
+    }
+  }
+
   /// Combina produtos do JSONBin com os do Firestore.
   Stream<List<Product>> get productsStream {
     // Stream do Firestore

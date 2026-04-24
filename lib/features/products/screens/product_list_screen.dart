@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/colors.dart';
+import '../../auth/services/auth_provider.dart';
 import '../models/product_model.dart';
 import '../services/product_provider.dart';
 import 'add_product_screen.dart';
@@ -12,6 +13,7 @@ class ProductListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final productProvider = Provider.of<ProductProvider>(context);
+    final authProvider = Provider.of<AuthProvider>(context);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -60,12 +62,13 @@ class ProductListScreen extends StatelessWidget {
               crossAxisCount: 2,
               crossAxisSpacing: 16,
               mainAxisSpacing: 16,
-              childAspectRatio: 0.65, // Aumentado para dar mais espaço vertical
+              childAspectRatio: 0.6, // Ajustado para dar espaço aos botões
             ),
             itemCount: products.length,
             itemBuilder: (context, index) {
               final product = products[index];
-              return _buildProductCard(context, product);
+              final isMyProduct = product.sellerId == authProvider.user?.uid;
+              return _buildProductCard(context, product, isMyProduct);
             },
           );
         },
@@ -83,7 +86,42 @@ class ProductListScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildProductCard(BuildContext context, Product product) {
+  void _confirmDelete(BuildContext context, Product product) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Excluir Produto', style: GoogleFonts.playfairDisplay(fontWeight: FontWeight.bold)),
+        content: Text('Deseja realmente excluir "${product.name}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CANCELAR', style: TextStyle(color: AppColors.textSecondary)),
+          ),
+          TextButton(
+            onPressed: () async {
+              final provider = Provider.of<ProductProvider>(context, listen: false);
+              final error = await provider.deleteProduct(product.id);
+              if (context.mounted) {
+                Navigator.pop(context);
+                if (error != null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(error), backgroundColor: AppColors.error),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Produto excluído!'), backgroundColor: AppColors.success),
+                  );
+                }
+              }
+            },
+            child: const Text('EXCLUIR', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProductCard(BuildContext context, Product product, bool isMyProduct) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -100,31 +138,55 @@ class ProductListScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            flex: 3, // Proporção da imagem
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-              ),
-              child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                child: product.imageUrl != null && product.imageUrl!.isNotEmpty
-                    ? Image.network(
-                        product.imageUrl!,
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        errorBuilder: (context, error, stackTrace) => const Center(
-                          child: Icon(Icons.image_outlined, size: 30, color: AppColors.primary),
-                        ),
-                      )
-                    : const Center(
-                        child: Icon(Icons.image_outlined, size: 30, color: AppColors.primary),
+            flex: 4,
+            child: Stack(
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                    child: product.imageUrl != null && product.imageUrl!.isNotEmpty
+                        ? Image.network(
+                            product.imageUrl!,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            errorBuilder: (context, error, stackTrace) => const Center(
+                              child: Icon(Icons.image_outlined, size: 30, color: AppColors.primary),
+                            ),
+                          )
+                        : const Center(
+                            child: Icon(Icons.image_outlined, size: 30, color: AppColors.primary),
+                          ),
+                  ),
+                ),
+                if (isMyProduct)
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.accent,
+                        borderRadius: BorderRadius.circular(12),
                       ),
-              ),
+                      child: Text(
+                        'MEU',
+                        style: GoogleFonts.poppins(
+                          fontSize: 8,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
           Expanded(
-            flex: 2, // Proporção do texto
+            flex: 3,
             child: Padding(
               padding: const EdgeInsets.all(10),
               child: Column(
@@ -158,13 +220,43 @@ class ProductListScreen extends StatelessWidget {
                       ),
                     ],
                   ),
-                  Text(
-                    'R\$ ${product.price.toStringAsFixed(2)}',
-                    style: GoogleFonts.poppins(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.accent,
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'R\$ ${product.price.toStringAsFixed(2)}',
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.accent,
+                        ),
+                      ),
+                      if (isMyProduct)
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit_outlined, size: 18, color: AppColors.primary),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => AddProductScreen(product: product),
+                                  ),
+                                );
+                              },
+                            ),
+                            const SizedBox(width: 8),
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.error),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              onPressed: () => _confirmDelete(context, product),
+                            ),
+                          ],
+                        ),
+                    ],
                   ),
                 ],
               ),

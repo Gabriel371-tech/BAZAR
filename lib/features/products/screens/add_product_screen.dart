@@ -4,11 +4,13 @@ import '../../../core/constants/colors.dart';
 import '../../../core/widgets/bazar_button.dart';
 import '../../../core/widgets/bazar_text_field.dart';
 import '../../auth/services/auth_provider.dart';
+import '../models/product_model.dart';
 import '../services/product_provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AddProductScreen extends StatefulWidget {
-  const AddProductScreen({super.key});
+  final Product? product;
+  const AddProductScreen({super.key, this.product});
 
   @override
   State<AddProductScreen> createState() => _AddProductScreenState();
@@ -22,6 +24,21 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final _brandController = TextEditingController();
   final _imageUrlController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+
+  bool get isEditing => widget.product != null;
+
+  @override
+  void initState() {
+    super.initState();
+    if (isEditing) {
+      _nameController.text = widget.product!.name;
+      _descriptionController.text = widget.product!.description;
+      _priceController.text = widget.product!.price.toString();
+      _categoryController.text = widget.product!.category;
+      _brandController.text = widget.product!.brand;
+      _imageUrlController.text = widget.product!.imageUrl ?? '';
+    }
+  }
 
   @override
   void dispose() {
@@ -39,15 +56,28 @@ class _AddProductScreenState extends State<AddProductScreen> {
       final productProvider = Provider.of<ProductProvider>(context, listen: false);
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
-      final error = await productProvider.addProduct(
-        name: _nameController.text.trim(),
-        description: _descriptionController.text.trim(),
-        price: double.parse(_priceController.text.trim()),
-        category: _categoryController.text.trim(),
-        brand: _brandController.text.trim(),
-        imageUrl: _imageUrlController.text.trim(),
-        sellerId: authProvider.user?.uid ?? '',
-      );
+      String? error;
+      if (isEditing) {
+        error = await productProvider.updateProduct(
+          id: widget.product!.id,
+          name: _nameController.text.trim(),
+          description: _descriptionController.text.trim(),
+          price: double.parse(_priceController.text.trim()),
+          category: _categoryController.text.trim(),
+          brand: _brandController.text.trim(),
+          imageUrl: _imageUrlController.text.trim(),
+        );
+      } else {
+        error = await productProvider.addProduct(
+          name: _nameController.text.trim(),
+          description: _descriptionController.text.trim(),
+          price: double.parse(_priceController.text.trim()),
+          category: _categoryController.text.trim(),
+          brand: _brandController.text.trim(),
+          imageUrl: _imageUrlController.text.trim(),
+          sellerId: authProvider.user?.uid ?? '',
+        );
+      }
 
       if (!mounted) return;
 
@@ -57,7 +87,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Produto cadastrado!'), backgroundColor: AppColors.success),
+          SnackBar(
+            content: Text(isEditing ? 'Produto atualizado!' : 'Produto cadastrado!'),
+            backgroundColor: AppColors.success,
+          ),
         );
         Navigator.pop(context);
       }
@@ -71,7 +104,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Novo Produto',
+          isEditing ? 'Editar Produto' : 'Novo Produto',
           style: GoogleFonts.playfairDisplay(fontWeight: FontWeight.bold),
         ),
       ),
@@ -132,7 +165,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
               ),
               const SizedBox(height: 40),
               BazarButton(
-                text: 'SALVAR PRODUTO',
+                text: isEditing ? 'ATUALIZAR PRODUTO' : 'SALVAR PRODUTO',
                 isLoading: productProvider.isLoading,
                 onPressed: _onSave,
               ),
