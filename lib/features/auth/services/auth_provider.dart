@@ -36,9 +36,11 @@ class AuthProvider with ChangeNotifier {
         if (doc.exists) {
           _userData = doc.data() as Map<String, dynamic>;
           notifyListeners();
+        } else {
+          debugPrint("Aviso: Documento do usuário ${_user!.uid} não encontrado no Firestore.");
         }
       } catch (e) {
-        debugPrint("Erro ao carregar dados do usuário: $e");
+        debugPrint("Erro ao carregar dados do usuário (UID: ${_user!.uid}): $e");
       }
     }
   }

@@ -7,20 +7,50 @@ import '../models/product_model.dart';
 
 class ProductProvider with ChangeNotifier {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
-  List<Product> _products = [];
   bool _isLoading = false;
 
-  List<Product> get products => _products;
   bool get isLoading => _isLoading;
 
   // Configurações do JSONBin
   final String _binId = '69e957d2856a682189614c23';
+  
+  // ATENÇÃO: Substitua pelo seu X-Master-Key real do console JSONBin!
+  final String _apiKey = r'$2a$10$sV.w2uJ6HwkguXs2vwUM4u15GSm0E5DTYrU3f35WeRaWAA2Z2tGEO';
+
+  /// Atualiza o JSONBin com a lista atualizada de produtos.
+  Future<void> _updateJsonBin(List<Product> allProducts) async {
+    try {
+      final body = json.encode({
+        'record': allProducts.map((p) => p.toJson()).toList()
+      });
+      
+      final response = await http.put(
+        Uri.parse('https://api.jsonbin.io/v3/b/$_binId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Master-Key': _apiKey,
+        },
+        body: body,
+      );
+
+      if (response.statusCode != 200) {
+        debugPrint('FALHA JSONBIN (${response.statusCode}): ${response.body}');
+      } else {
+        debugPrint('JSONBin atualizado com sucesso!');
+      }
+    } catch (e) {
+      debugPrint("Erro fatal na sincronização JSONBin: $e");
+    }
+  }
 
   /// Busca produtos do JSONBin.
   Future<List<Product>> fetchProductsFromJsonBin() async {
     try {
       final response = await http.get(
         Uri.parse('https://api.jsonbin.io/v3/b/$_binId/latest'),
+        headers: {
+          'X-Master-Key': _apiKey,
+        },
       );
 
       if (response.statusCode == 200) {
@@ -45,28 +75,45 @@ class ProductProvider with ChangeNotifier {
     }
   }
 
-  /// Adiciona um novo produto ao Firestore.
+  /// Adiciona um novo produto ao Firestore e sincroniza com JSONBin.
   Future<String?> addProduct({
     required String name,
     required String description,
     required double price,
     required String category,
     required String brand,
-    required String imageUrl, // Adicionado
+    required String imageUrl,
     required String sellerId,
   }) async {
     _setLoading(true);
     try {
-      await _db.collection('products').add({
+      // 1. Salva no Firestore
+      final docRef = await _db.collection('products').add({
         'name': name,
         'description': description,
         'price': price,
         'category': category,
         'brand': brand,
-        'imageUrl': imageUrl, // Adicionado
+        'imageUrl': imageUrl,
         'sellerId': sellerId,
         'createdAt': FieldValue.serverTimestamp(),
       });
+
+      // 2. Sincroniza com JSONBin
+      final currentProducts = await fetchProductsFromJsonBin();
+      final newProduct = Product(
+        id: docRef.id,
+        name: name,
+        description: description,
+        price: price,
+        category: category,
+        brand: brand,
+        imageUrl: imageUrl,
+        sellerId: sellerId,
+      );
+      currentProducts.add(newProduct);
+      await _updateJsonBin(currentProducts);
+
       _setLoading(false);
       return null;
     } catch (e) {
@@ -75,7 +122,7 @@ class ProductProvider with ChangeNotifier {
     }
   }
 
-  /// Atualiza um produto no Firestore.
+  /// Atualiza um produto no Firestore e no JSONBin.
   Future<String?> updateProduct({
     required String id,
     required String name,
@@ -87,6 +134,7 @@ class ProductProvider with ChangeNotifier {
   }) async {
     _setLoading(true);
     try {
+      // 1. Firestore
       await _db.collection('products').doc(id).update({
         'name': name,
         'description': description,
@@ -95,6 +143,24 @@ class ProductProvider with ChangeNotifier {
         'brand': brand,
         'imageUrl': imageUrl,
       });
+
+      // 2. JSONBin
+      final currentProducts = await fetchProductsFromJsonBin();
+      final index = currentProducts.indexWhere((p) => p.id == id);
+      if (index != -1) {
+        currentProducts[index] = Product(
+          id: id,
+          name: name,
+          description: description,
+          price: price,
+          category: category,
+          brand: brand,
+          imageUrl: imageUrl,
+          sellerId: currentProducts[index].sellerId,
+        );
+        await _updateJsonBin(currentProducts);
+      }
+
       _setLoading(false);
       return null;
     } catch (e) {
@@ -103,11 +169,18 @@ class ProductProvider with ChangeNotifier {
     }
   }
 
-  /// Exclui um produto do Firestore.
+  /// Exclui um produto do Firestore e do JSONBin.
   Future<String?> deleteProduct(String id) async {
     _setLoading(true);
     try {
+      // 1. Firestore
       await _db.collection('products').doc(id).delete();
+
+      // 2. JSONBin
+      final currentProducts = await fetchProductsFromJsonBin();
+      currentProducts.removeWhere((p) => p.id == id);
+      await _updateJsonBin(currentProducts);
+
       _setLoading(false);
       return null;
     } catch (e) {
@@ -118,7 +191,6 @@ class ProductProvider with ChangeNotifier {
 
   /// Combina produtos do JSONBin com os do Firestore.
   Stream<List<Product>> get productsStream {
-    // Stream do Firestore
     final firestoreStream = _db.collection('products')
         .orderBy('createdAt', descending: true)
         .snapshots()
@@ -126,15 +198,12 @@ class ProductProvider with ChangeNotifier {
             .map((doc) => Product.fromFirestore(doc))
             .toList());
 
-    // Stream do JSONBin (emite uma vez)
     final jsonBinStream = Stream.fromFuture(fetchProductsFromJsonBin());
 
-    // Combina os dois streams
     return CombineLatestStream.combine2<List<Product>, List<Product>, List<Product>>(
       firestoreStream,
       jsonBinStream,
       (firestoreList, jsonBinList) {
-        // Une as duas listas
         return [...firestoreList, ...jsonBinList];
       },
     ).handleError((error) {

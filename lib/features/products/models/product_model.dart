@@ -6,7 +6,7 @@ class Product {
   final String description;
   final double price;
   final String category;
-  final String brand; // Adicionado
+  final String brand;
   final DateTime createdAt;
   final String? imageUrl;
   final String sellerId;
@@ -17,11 +17,11 @@ class Product {
     required this.description,
     required this.price,
     required this.category,
-    required this.brand, // Adicionado
-    required this.createdAt,
+    required this.brand,
+    DateTime? createdAt,
     required this.sellerId,
     this.imageUrl,
-  });
+  }) : createdAt = createdAt ?? DateTime.now();
 
   factory Product.fromFirestore(DocumentSnapshot doc) {
     Map data = doc.data() as Map<String, dynamic>;
@@ -31,7 +31,7 @@ class Product {
       description: data['description'] ?? '',
       price: (data['price'] ?? 0).toDouble(),
       category: data['category'] ?? '',
-      brand: data['brand'] ?? 'Bazar', // Adicionado
+      brand: data['brand'] ?? 'Bazar',
       sellerId: data['sellerId'] ?? '',
       imageUrl: data['imageUrl'],
       createdAt: data['createdAt'] != null 
@@ -41,14 +41,8 @@ class Product {
   }
 
   factory Product.fromJson(Map<String, dynamic> json) {
-    String? img = json['imagem'] ?? json['imageUrl'];
+    String? img = json['imagem'] ?? json['imageUrl'] ?? json['image_url'];
     
-    if (img != null && img.contains('unsplash.com')) {
-      if (img.contains('1542291026')) img = 'https://images.pexels.com/photos/2529148/pexels-photo-2529148.jpeg?auto=compress&cs=tinysrgb&w=500'; // Tênis
-      if (img.contains('1576871337')) img = 'https://images.pexels.com/photos/6770028/pexels-photo-6770028.jpeg?auto=compress&cs=tinysrgb&w=500'; // Jaqueta (Novo Link)
-      if (img.contains('1572804013')) img = 'https://images.pexels.com/photos/2235071/pexels-photo-2235071.jpeg?auto=compress&cs=tinysrgb&w=500'; // Vestido
-    }
-
     return Product(
       id: (json['id'] ?? '').toString(),
       name: json['nome'] ?? json['name'] ?? '',
@@ -59,9 +53,23 @@ class Product {
       sellerId: json['sellerId'] ?? 'system',
       imageUrl: img,
       createdAt: json['createdAt'] != null 
-          ? DateTime.parse(json['createdAt']) 
+          ? DateTime.tryParse(json['createdAt'] ?? '') ?? DateTime.now()
           : DateTime.now(),
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'nome': name,
+      'marca': brand,
+      'descrição': description,
+      'preço': price,
+      'imagem': imageUrl,
+      'category': category,
+      'sellerId': sellerId,
+      'createdAt': createdAt.toIso8601String(),
+    };
   }
 
   Map<String, dynamic> toMap() {
@@ -70,7 +78,7 @@ class Product {
       'description': description,
       'price': price,
       'category': category,
-      'brand': brand, // Adicionado
+      'brand': brand,
       'sellerId': sellerId,
       'imageUrl': imageUrl,
       'createdAt': FieldValue.serverTimestamp(),
