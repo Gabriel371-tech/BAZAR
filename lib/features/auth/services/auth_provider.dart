@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../../../core/services/notification_service.dart';
 
 /// Provedor de Autenticação do Firebase com integração ao Firestore.
 /// Gerencia o estado do usuário, autenticação e dados no banco de dados.
@@ -18,9 +19,19 @@ class AuthProvider with ChangeNotifier {
   AuthProvider() {
     // Escuta mudanças no estado de autenticação (logado/deslogado)
     _auth.authStateChanges().listen((User? user) {
+      bool wasNull = _user == null;
       _user = user;
       if (user != null) {
-        _loadUserData();
+        _loadUserData().then((_) {
+          if (wasNull) {
+            final name = _userData?['displayName'] ?? user.displayName ?? 'Usuário';
+            NotificationService.showNotification(
+              id: 0,
+              title: 'Login realizado',
+              body: 'Seja bem vindo $name',
+            );
+          }
+        });
       } else {
         _userData = null;
         notifyListeners();

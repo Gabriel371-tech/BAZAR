@@ -5,12 +5,14 @@ import 'features/auth/services/auth_provider.dart';
 import 'features/products/services/product_provider.dart';
 import 'features/home/screens/home_screen.dart';
 import 'core/constants/colors.dart';
+import 'core/services/notification_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await NotificationService.init();
 
   try {
     await Firebase.initializeApp(

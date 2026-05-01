@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/colors.dart';
+import '../../../core/services/notification_service.dart';
 import '../../auth/services/auth_provider.dart';
 import '../models/product_model.dart';
 import '../services/product_provider.dart';
@@ -62,7 +63,7 @@ class ProductListScreen extends StatelessWidget {
               crossAxisCount: 2,
               crossAxisSpacing: 16,
               mainAxisSpacing: 16,
-              childAspectRatio: 0.6, // Ajustado para dar espaço aos botões
+              childAspectRatio: 0.55, // Aumentado um pouco para acomodar o novo botão
             ),
             itemCount: products.length,
             itemBuilder: (context, index) {
@@ -186,7 +187,7 @@ class ProductListScreen extends StatelessWidget {
             ),
           ),
           Expanded(
-            flex: 3,
+            flex: 4,
             child: Padding(
               padding: const EdgeInsets.all(10),
               child: Column(
@@ -220,16 +221,39 @@ class ProductListScreen extends StatelessWidget {
                       ),
                     ],
                   ),
+                  Text(
+                    'R\$ ${product.price.toStringAsFixed(2)}',
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.accent,
+                    ),
+                  ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'R\$ ${product.price.toStringAsFixed(2)}',
-                        style: GoogleFonts.poppins(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.accent,
+                      ElevatedButton(
+                        onPressed: () {
+                          NotificationService.showNotification(
+                            id: product.id.hashCode,
+                            title: 'Carrinho',
+                            body: 'Produto adicionado ao carrinho',
+                          );
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Adicionado ao carrinho!'),
+                              duration: Duration(seconds: 1),
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          shape: const CircleBorder(),
+                          padding: const EdgeInsets.all(8),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
+                        child: const Icon(Icons.add, color: Colors.white, size: 20),
                       ),
                       if (isMyProduct)
                         Row(
