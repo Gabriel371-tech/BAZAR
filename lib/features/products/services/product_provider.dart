@@ -8,8 +8,18 @@ import '../models/product_model.dart';
 class ProductProvider with ChangeNotifier {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   bool _isLoading = false;
+  String _searchQuery = '';
+  String _selectedCategory = '';
+  double _minPrice = 0.0;
+  double _maxPrice = 10000.0;
+  List<Product> _filteredProducts = [];
 
   bool get isLoading => _isLoading;
+  String get searchQuery => _searchQuery;
+  String get selectedCategory => _selectedCategory;
+  double get minPrice => _minPrice;
+  double get maxPrice => _maxPrice;
+  List<Product> get filteredProducts => _filteredProducts;
 
   // Configurações do JSONBin
   final String _binId = '69e957d2856a682189614c23';
@@ -216,4 +226,81 @@ class ProductProvider with ChangeNotifier {
     _isLoading = value;
     notifyListeners();
   }
+
+  /// Atualiza a query de busca
+  void setSearchQuery(String query) {
+    _searchQuery = query;
+    _applyFilters();
+  }
+
+  /// Define a categoria selecionada
+  void setSelectedCategory(String category) {
+    if (_selectedCategory == category) {
+      _selectedCategory = '';
+    } else {
+      _selectedCategory = category;
+    }
+    _applyFilters();
+  }
+
+  /// Define o intervalo de preço
+  void setPriceRange(double min, double max) {
+    _minPrice = min;
+    _maxPrice = max;
+    _applyFilters();
+  }
+
+  /// Limpa todos os filtros
+  void clearFilters() {
+    _searchQuery = '';
+    _selectedCategory = '';
+    _minPrice = 0.0;
+    _maxPrice = 10000.0;
+    _filteredProducts.clear();
+    notifyListeners();
+  }
+
+  /// Aplica os filtros e pesquisa aos produtos
+  Future<void> _applyFilters() async {
+    _setLoading(true);
+    try {
+      final allProducts = await fetchProductsFromJsonBin();
+      
+      _filteredProducts = allProducts.where((product) {
+        // Filtro de pesquisa (por nome e descrição)
+        final matchesSearch = _searchQuery.isEmpty ||
+            product.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+            product.description.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+            product.category.toLowerCase().contains(_searchQuery.toLowerCase());
+
+        // Filtro de categoria
+        final matchesCategory =
+            _selectedCategory.isEmpty || product.category == _selectedCategory;
+
+        // Filtro de preço
+        final matchesPrice =
+            product.price >= _minPrice && product.price <= _maxPrice;
+
+        return matchesSearch && matchesCategory && matchesPrice;
+      }).toList();
+
+      _setLoading(false);
+    } catch (e) {
+      debugPrint("Erro ao aplicar filtros: $e");
+      _setLoading(false);
+    }
+  }
+
+  /// Obtém todas as categorias únicas dos produtos
+  Future<List<String>> getCategories() async {
+    try {
+      final allProducts = await fetchProductsFromJsonBin();
+      final categories = allProducts.map((p) => p.category).toSet().toList();
+      return categories..sort();
+    } catch (e) {
+      debugPrint("Erro ao buscar categorias: $e");
+      return [];
+    }
+  }
 }
+

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'features/auth/services/auth_provider.dart';
+import 'features/cart/services/cart_provider.dart';
 import 'features/products/services/product_provider.dart';
 import 'features/home/screens/home_screen.dart';
 import 'core/constants/colors.dart';
@@ -27,6 +28,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => ProductProvider()),
+        ChangeNotifierProvider(create: (_) => CartProvider()),
       ],
       child: const BazarApp(),
     ),
