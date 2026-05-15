@@ -21,10 +21,7 @@ class DefaultFirebaseOptions {
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for android - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return android;
       case TargetPlatform.iOS:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for ios - '
@@ -60,5 +57,13 @@ class DefaultFirebaseOptions {
     authDomain: 'bazar-cozy.firebaseapp.com',
     storageBucket: 'bazar-cozy.firebasestorage.app',
     measurementId: 'G-WXE0QP3P5Z',
+  );
+
+  static const FirebaseOptions android = FirebaseOptions(
+    apiKey: 'AIzaSyAjsYC4_HShYsNvrV7kF5nUrjPAtQYhfAQ',
+    appId: '1:585846035775:android:782136e0d9b4c7c80caf8a',
+    messagingSenderId: '585846035775',
+    projectId: 'bazar-cozy',
+    storageBucket: 'bazar-cozy.firebasestorage.app',
   );
 }
