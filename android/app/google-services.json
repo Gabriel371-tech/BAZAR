@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "585846035775",
+    "project_id": "bazar-cozy",
+    "storage_bucket": "bazar-cozy.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:585846035775:android:af9510030311571d0caf8a",
+        "android_client_info": {
+          "package_name": "com.example.bazar"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAGb2xYM6WITGOjMg_4Crd9oLsvC6fRpe8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

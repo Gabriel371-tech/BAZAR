@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:rxdart/rxdart.dart';
+import '../../../core/services/notification_service.dart';
 import '../models/product_model.dart';
 
 class ProductProvider with ChangeNotifier {
@@ -124,6 +125,13 @@ class ProductProvider with ChangeNotifier {
       currentProducts.add(newProduct);
       await _updateJsonBin(currentProducts);
 
+      // 3. Notificação Local
+      NotificationService.showUpdateNotification(
+        id: DateTime.now().millisecond,
+        productName: name,
+        updateMessage: 'Seu produto foi cadastrado com sucesso!',
+      );
+
       _setLoading(false);
       return null;
     } catch (e) {
@@ -199,7 +207,7 @@ class ProductProvider with ChangeNotifier {
     }
   }
 
-  /// Combina produtos do JSONBin com os do Firestore.
+  /// Combina produtos do JSONBin com os do Firestore sem duplicatas.
   Stream<List<Product>> get productsStream {
     final firestoreStream = _db.collection('products')
         .orderBy('createdAt', descending: true)
@@ -214,7 +222,21 @@ class ProductProvider with ChangeNotifier {
       firestoreStream,
       jsonBinStream,
       (firestoreList, jsonBinList) {
-        return [...firestoreList, ...jsonBinList];
+        // Usa um Map para evitar duplicatas baseadas no ID
+        final Map<String, Product> combinedMap = {};
+        
+        // Primeiro adiciona os do JSONBin (produtos do sistema)
+        for (var p in jsonBinList) {
+          combinedMap[p.id] = p;
+        }
+        
+        // Depois adiciona os do Firestore (que podem sobrescrever ou ser novos)
+        // O Firestore tem prioridade
+        for (var p in firestoreList) {
+          combinedMap[p.id] = p;
+        }
+        
+        return combinedMap.values.toList();
       },
     ).handleError((error) {
       debugPrint("Erro no stream de produtos: $error");

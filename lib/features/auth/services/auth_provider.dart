@@ -19,24 +19,24 @@ class AuthProvider with ChangeNotifier {
   AuthProvider() {
     // Escuta mudanças no estado de autenticação (logado/deslogado)
     _auth.authStateChanges().listen((User? user) {
-      bool wasNull = _user == null;
       _user = user;
       if (user != null) {
-        _loadUserData().then((_) {
-          if (wasNull) {
-            final name = _userData?['displayName'] ?? user.displayName ?? 'Usuário';
-            NotificationService.showNotification(
-              id: 0,
-              title: 'Login realizado',
-              body: 'Seja bem vindo $name',
-            );
-          }
-        });
+        _loadUserData();
       } else {
         _userData = null;
         notifyListeners();
       }
     });
+  }
+
+  /// Mostra notificação de boas vindas
+  void _showWelcomeNotification(User user) {
+    final name = _userData?['displayName'] ?? user.displayName ?? 'Usuário';
+    NotificationService.showNotification(
+      id: 0,
+      title: 'Login realizado',
+      body: 'Seja bem vindo $name',
+    );
   }
 
   /// Busca dados adicionais do usuário no Firestore.
@@ -81,6 +81,7 @@ class AuthProvider with ChangeNotifier {
           await user.updateDisplayName(displayName);
         }
         await _loadUserData();
+        _showWelcomeNotification(user);
       }
       
       _setLoading(false);
@@ -105,7 +106,11 @@ class AuthProvider with ChangeNotifier {
       await _auth.verifyPhoneNumber(
         phoneNumber: phoneNumber,
         verificationCompleted: (PhoneAuthCredential credential) async {
-          await _auth.signInWithCredential(credential);
+          UserCredential userCredential = await _auth.signInWithCredential(credential);
+          if (userCredential.user != null) {
+            await _loadUserData();
+            _showWelcomeNotification(userCredential.user!);
+          }
           _setLoading(false);
         },
         verificationFailed: (FirebaseAuthException e) {
@@ -134,7 +139,11 @@ class AuthProvider with ChangeNotifier {
         verificationId: verificationId,
         smsCode: smsCode,
       );
-      await _auth.signInWithCredential(credential);
+      UserCredential userCredential = await _auth.signInWithCredential(credential);
+      if (userCredential.user != null) {
+        await _loadUserData();
+        _showWelcomeNotification(userCredential.user!);
+      }
       _setLoading(false);
       return null;
     } on FirebaseAuthException catch (e) {
@@ -185,6 +194,7 @@ class AuthProvider with ChangeNotifier {
         await userCredential.user!.updateDisplayName(displayName);
       }
       await _loadUserData();
+      _showWelcomeNotification(userCredential.user!);
 
       _setLoading(false);
       return null;
@@ -201,7 +211,11 @@ class AuthProvider with ChangeNotifier {
   Future<String?> signIn(String email, String password) async {
     _setLoading(true);
     try {
-      await _auth.signInWithEmailAndPassword(email: email, password: password);
+      UserCredential userCredential = await _auth.signInWithEmailAndPassword(email: email, password: password);
+      if (userCredential.user != null) {
+        await _loadUserData();
+        _showWelcomeNotification(userCredential.user!);
+      }
       _setLoading(false);
       return null; // Sucesso
     } on FirebaseAuthException catch (e) {

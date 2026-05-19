@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/services/notification_service.dart';
 import '../models/cart_item_model.dart';
 import '../../products/models/product_model.dart';
 
@@ -40,6 +41,14 @@ class CartProvider with ChangeNotifier {
       // Novo produto
       _items.add(CartItem(product: product, quantity: quantity));
     }
+
+    // Mostra notificação local
+    NotificationService.showNotification(
+      id: DateTime.now().millisecond,
+      title: 'Produto Adicionado!',
+      body: '${product.name} foi adicionado ao seu carrinho.',
+      channel: 'bazar_cart',
+    );
 
     notifyListeners();
   }

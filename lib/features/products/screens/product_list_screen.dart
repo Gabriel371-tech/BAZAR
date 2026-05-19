@@ -299,9 +299,22 @@ class _ProductListScreenState extends State<ProductListScreen> {
                     childAspectRatio: 0.55,
                   ),
                   itemCount: products.length,
-                  itemBuilder: (context, index) {
+                    itemBuilder: (context, index) {
                     final product = products[index];
-                    final isMyProduct = product.sellerId == authProvider.user?.uid;
+                    
+                    // Um produto só é considerado "meu" se:
+                    // 1. O usuário estiver logado.
+                    // 2. O sellerId do produto for exatamente igual ao UID do usuário.
+                    // 3. O sellerId não for 'system' (produtos padrão do JSONBin).
+                    // 4. O ID do produto não for numérico curto (padrão JSONBin).
+                    
+                    final bool isSystemId = int.tryParse(product.id) != null && product.id.length < 5;
+                    final bool isMyProduct = authProvider.user != null && 
+                                           product.sellerId.isNotEmpty &&
+                                           product.sellerId != 'system' &&
+                                           !isSystemId &&
+                                           product.sellerId == authProvider.user!.uid;
+                                      
                     return _buildProductCard(context, product, isMyProduct);
                   },
                 );
@@ -437,23 +450,43 @@ class _ProductListScreenState extends State<ProductListScreen> {
                   Positioned(
                     top: 8,
                     right: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.accent,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        'MEU',
-                        style: GoogleFonts.poppins(
-                          fontSize: 8,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.accent,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            'MEU',
+                            style: GoogleFonts.poppins(
+                              fontSize: 8,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
                         ),
-                      ),
+                        const SizedBox(width: 4),
+                        GestureDetector(
+                          onTap: () => _confirmDelete(context, product),
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: AppColors.error,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.delete_outline,
+                              size: 14,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
               ],
@@ -502,65 +535,38 @@ class _ProductListScreenState extends State<ProductListScreen> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      if (isMyProduct)
-                        SizedBox(
-                          width: double.infinity,
-                          height: 28,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.error,
-                              padding: EdgeInsets.zero,
-                            ),
-                            onPressed: () {
-                              _confirmDelete(context, product);
-                            },
-                            child: const Text(
-                              'Excluir',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                              ),
-                            ),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 28,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            padding: EdgeInsets.zero,
                           ),
-                        )
-                      else
-                        SizedBox(
-                          width: double.infinity,
-                          height: 28,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primary,
-                              padding: EdgeInsets.zero,
-                            ),
-                            onPressed: () {
-                              final cartProvider =
-                                  Provider.of<CartProvider>(context,
-                                      listen: false);
-                              cartProvider.addProduct(product);
-                              NotificationService.showNotification(
-                                id: product.id.hashCode,
-                                title: 'Carrinho',
-                                body: '${product.name} adicionado ao carrinho',
-                              );
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    '${product.name} adicionado ao carrinho!',
-                                  ),
-                                  duration: const Duration(seconds: 2),
-                                  backgroundColor: Colors.green,
+                          onPressed: () {
+                            final cartProvider =
+                                Provider.of<CartProvider>(context,
+                                    listen: false);
+                            cartProvider.addProduct(product);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  '${product.name} adicionado ao carrinho!',
                                 ),
-                              );
-                            },
-                            child: const Text(
-                              'Adicionar',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
+                                duration: const Duration(seconds: 2),
+                                backgroundColor: Colors.green,
                               ),
+                            );
+                          },
+                          child: const Text(
+                            'Adicionar',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
                             ),
                           ),
                         ),
+                      ),
                     ],
                   ),
                 ],

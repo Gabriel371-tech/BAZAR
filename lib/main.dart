@@ -13,7 +13,6 @@ import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await NotificationService.init();
 
   try {
     await Firebase.initializeApp(
@@ -22,6 +21,8 @@ void main() async {
   } catch (e) {
     debugPrint("Erro ao inicializar Firebase: $e");
   }
+
+  await NotificationService.init();
 
   runApp(
     MultiProvider(
