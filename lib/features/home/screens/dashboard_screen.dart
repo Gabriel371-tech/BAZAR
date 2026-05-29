@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/colors.dart';
 import '../../auth/services/auth_provider.dart';
+import '../../cart/screens/purchase_history_screen.dart';
 import '../../profile/screens/profile_screen.dart';
 import '../../products/screens/product_list_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -69,6 +70,17 @@ class DashboardScreen extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const ProductListScreen()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.history_outlined),
+              title: const Text('Compras Realizadas'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const PurchaseHistoryScreen()),
                 );
               },
             ),

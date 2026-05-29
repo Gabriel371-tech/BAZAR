@@ -4,6 +4,8 @@ import '../../../core/constants/colors.dart';
 import '../../../core/widgets/bazar_button.dart';
 import '../services/cart_provider.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'purchase_history_screen.dart';
+import 'purchase_success_screen.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -31,6 +33,18 @@ class _CartScreenState extends State<CartScreen> {
         ),
         elevation: 0,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.history, color: Colors.white),
+            tooltip: 'Histórico de Compras',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const PurchaseHistoryScreen(),
+                ),
+              );
+            },
+          ),
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Consumer<CartProvider>(
@@ -575,16 +589,37 @@ class _CartScreenState extends State<CartScreen> {
       children: [
         BazarButton(
           text: 'Finalizar Compra',
-          onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Pedido finalizado com sucesso!'),
-                backgroundColor: Colors.green,
+          onPressed: () async {
+            final order = await cartProvider.placeOrder();
+
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => PurchaseSuccessScreen(
+                  purchasedItems: order.items,
+                  totalAmount: order.total,
+                ),
               ),
             );
-            cartProvider.clearCart();
-            Navigator.pop(context);
           },
+        ),
+        const SizedBox(height: 8),
+        OutlinedButton(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const PurchaseHistoryScreen(),
+              ),
+            );
+          },
+          style: OutlinedButton.styleFrom(
+            side: const BorderSide(color: AppColors.primary),
+          ),
+          child: const Text(
+            'Ver Histórico de Compras',
+            style: TextStyle(color: AppColors.primary),
+          ),
         ),
         const SizedBox(height: 8),
         OutlinedButton(

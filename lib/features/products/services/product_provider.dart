@@ -28,11 +28,45 @@ class ProductProvider with ChangeNotifier {
   // ATENÇÃO: Substitua pelo seu X-Master-Key real do console JSONBin!
   final String _apiKey = r'$2a$10$sV.w2uJ6HwkguXs2vwUM4u15GSm0E5DTYrU3f35WeRaWAA2Z2tGEO';
 
+  Future<Map<String, dynamic>?> _fetchJsonBinRecord() async {
+    try {
+      final response = await http.get(
+        Uri.parse('https://api.jsonbin.io/v3/b/$_binId/latest'),
+        headers: {
+          'X-Master-Key': _apiKey,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final dynamic recordContent = data['record'];
+        if (recordContent is Map<String, dynamic>) {
+          if (recordContent.containsKey('record') && recordContent['record'] is Map<String, dynamic>) {
+            return Map<String, dynamic>.from(recordContent['record']);
+          }
+          return recordContent;
+        }
+        if (recordContent is List<dynamic>) {
+          return {'record': recordContent};
+        }
+      }
+    } catch (e) {
+      debugPrint('Erro ao buscar registro JSONBin de produtos: $e');
+    }
+    return null;
+  }
+
   /// Atualiza o JSONBin com a lista atualizada de produtos.
   Future<void> _updateJsonBin(List<Product> allProducts) async {
     try {
+      final existingRecord = await _fetchJsonBinRecord();
+      final existingOrders = (existingRecord != null && existingRecord['orders'] is List)
+          ? existingRecord['orders']
+          : <dynamic>[];
+
       final body = json.encode({
-        'record': allProducts.map((p) => p.toJson()).toList()
+        'products': allProducts.map((p) => p.toJson()).toList(),
+        'orders': existingOrders,
       });
       
       final response = await http.put(
@@ -57,29 +91,23 @@ class ProductProvider with ChangeNotifier {
   /// Busca produtos do JSONBin.
   Future<List<Product>> fetchProductsFromJsonBin() async {
     try {
-      final response = await http.get(
-        Uri.parse('https://api.jsonbin.io/v3/b/$_binId/latest'),
-        headers: {
-          'X-Master-Key': _apiKey,
-        },
-      );
+      final existingRecord = await _fetchJsonBinRecord();
+      final dynamic recordContent = existingRecord ?? {};
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final dynamic recordContent = data['record'];
-        
-        List<dynamic> productsJson = [];
-        if (recordContent is Map && recordContent.containsKey('record')) {
+      List<dynamic> productsJson = [];
+      if (recordContent is Map<String, dynamic>) {
+        if (recordContent['products'] is List) {
+          productsJson = recordContent['products'];
+        } else if (recordContent['record'] is List) {
           productsJson = recordContent['record'];
-        } else if (recordContent is List) {
-          productsJson = recordContent;
+        } else if (recordContent['record'] is Map<String, dynamic> && recordContent['record']['products'] is List) {
+          productsJson = recordContent['record']['products'];
         }
-
-        return productsJson.map((json) => Product.fromJson(json)).toList();
-      } else {
-        debugPrint('Erro JSONBin (${response.statusCode}): ${response.body}');
-        return [];
+      } else if (recordContent is List) {
+        productsJson = recordContent;
       }
+
+      return productsJson.map((json) => Product.fromJson(json)).toList();
     } catch (e) {
       debugPrint("Erro ao buscar produtos JSONBin: $e");
       return [];

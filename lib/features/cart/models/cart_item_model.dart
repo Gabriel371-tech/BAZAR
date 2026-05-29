@@ -23,6 +23,20 @@ class CartItem {
     );
   }
 
+  Map<String, dynamic> toJson() {
+    return {
+      'product': product.toJson(),
+      'quantity': quantity,
+    };
+  }
+
+  factory CartItem.fromJson(Map<String, dynamic> json) {
+    return CartItem(
+      product: Product.fromJson(Map<String, dynamic>.from(json['product'] ?? {})),
+      quantity: (json['quantity'] ?? 1).toInt(),
+    );
+  }
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
