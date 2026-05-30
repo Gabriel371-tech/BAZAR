@@ -47,7 +47,7 @@ class _LoginScreenState extends State<LoginScreen> {
           _passwordController.text.trim(),
         );
         if (!mounted) return;
-        _handleResult(context, error);
+        _handleResult(error);
       } else {
         // Login por Telefone
         if (!_isCodeSent) {
@@ -73,13 +73,13 @@ class _LoginScreenState extends State<LoginScreen> {
         } else {
           final error = await authProvider.signInWithOTP(_verificationId, _otpController.text.trim());
           if (!mounted) return;
-          _handleResult(context, error);
+          _handleResult(error);
         }
       }
     }
   }
 
-  void _handleResult(BuildContext context, String? error) {
+  void _handleResult(String? error) {
     if (error != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(error), backgroundColor: AppColors.error),

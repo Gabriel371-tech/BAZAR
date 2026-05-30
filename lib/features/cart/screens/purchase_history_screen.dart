@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/colors.dart';
-import '../../../core/widgets/bazar_button.dart';
 import '../models/order_model.dart';
 import '../services/cart_provider.dart';
 
@@ -44,7 +43,7 @@ class PurchaseHistoryScreen extends StatelessWidget {
               : ListView.separated(
                   padding: const EdgeInsets.all(16),
                   itemCount: orders.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  separatorBuilder: (_, _) => const SizedBox(height: 12),
                   itemBuilder: (context, index) {
                     final order = orders[index];
                     return _buildOrderCard(context, order, () async {
@@ -73,7 +72,7 @@ class PurchaseHistoryScreen extends StatelessWidget {
 
                       if (confirm == true) {
                         final removed = await cartProvider.removeOrder(order.id);
-                        if (removed) {
+                        if (removed && context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text('Pedido excluído do histórico')),
                           );

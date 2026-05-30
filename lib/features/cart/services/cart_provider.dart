@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../../../core/services/notification_service.dart';
@@ -16,8 +17,32 @@ class CartProvider with ChangeNotifier {
   final String _binId = '69e957d2856a682189614c23';
   final String _apiKey = r'$2a$10$sV.w2uJ6HwkguXs2vwUM4u15GSm0E5DTYrU3f35WeRaWAA2Z2tGEO';
 
+  late AppLifecycleListener _lifecycleListener;
+  bool _isSyncing = false;
+
   CartProvider() {
     _loadOrders();
+    _initializeLifecycleListener();
+  }
+
+  /// Inicializa o listener do ciclo de vida do app
+  void _initializeLifecycleListener() {
+    _lifecycleListener = AppLifecycleListener(
+      onPause: _handleAppPause,
+      onDetach: _handleAppDetach,
+    );
+  }
+
+  /// Chamado quando o app entra em pausa (vai para background)
+  void _handleAppPause() {
+    debugPrint('App entrou em pausa - sincronizando compras com jsonbin');
+    _syncOrdersToJsonBin();
+  }
+
+  /// Chamado quando o app é desanexado (será fechado)
+  void _handleAppDetach() {
+    debugPrint('App vai ser fechado - sincronizando compras com jsonbin');
+    _syncOrdersToJsonBin();
   }
 
   // Getters
@@ -54,7 +79,7 @@ class CartProvider with ChangeNotifier {
           'Content-Type': 'application/json',
           'X-Master-Key': _apiKey,
         },
-      );
+      ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -68,7 +93,11 @@ class CartProvider with ChangeNotifier {
         if (record is List<dynamic>) {
           return {'record': record};
         }
+      } else {
+        debugPrint('Erro HTTP ao buscar jsonbin: ${response.statusCode}');
       }
+    } on TimeoutException catch (_) {
+      debugPrint('Timeout ao buscar histórico do jsonbin');
     } catch (e) {
       debugPrint('Erro ao buscar histórico de pedidos no JSONBin: $e');
     }
@@ -76,6 +105,12 @@ class CartProvider with ChangeNotifier {
   }
 
   Future<void> _updateJsonBinRecord(Map<String, dynamic> record) async {
+    if (_isSyncing) {
+      debugPrint('Sincronização já em andamento, pulando...');
+      return;
+    }
+
+    _isSyncing = true;
     try {
       final response = await http.put(
         Uri.parse('https://api.jsonbin.io/v3/b/$_binId'),
@@ -84,13 +119,20 @@ class CartProvider with ChangeNotifier {
           'X-Master-Key': _apiKey,
         },
         body: json.encode(record),
-      );
+      ).timeout(const Duration(seconds: 10));
 
-      if (response.statusCode != 200) {
-        debugPrint('Falha ao atualizar JSONBin de pedidos: ${response.statusCode} - ${response.body}');
+      if (response.statusCode == 200) {
+        debugPrint('✓ Compras sincronizadas com sucesso ao jsonbin');
+      } else {
+        debugPrint('✗ Falha ao atualizar JSONBin de pedidos: ${response.statusCode}');
+        debugPrint('Response: ${response.body}');
       }
+    } on TimeoutException catch (_) {
+      debugPrint('✗ Timeout ao sincronizar compras com jsonbin');
     } catch (e) {
-      debugPrint('Erro ao atualizar registro JSONBin de pedidos: $e');
+      debugPrint('✗ Erro ao atualizar registro JSONBin de pedidos: $e');
+    } finally {
+      _isSyncing = false;
     }
   }
 
@@ -123,11 +165,15 @@ class CartProvider with ChangeNotifier {
       }
     }
 
+    final ordersJson = _orders.map((order) => order.toJson()).toList();
     final updatedRecord = {
       'products': products,
-      'orders': _orders.map((order) => order.toJson()).toList(),
+      'orders': ordersJson,
     };
 
+    debugPrint('Sincronizando ${_orders.length} compra(s) para jsonbin...');
+    debugPrint('Pedidos: $ordersJson');
+    
     await _updateJsonBinRecord(updatedRecord);
   }
 
@@ -316,5 +362,11 @@ class CartProvider with ChangeNotifier {
     } catch (e) {
       return null;
     }
+  }
+
+  @override
+  void dispose() {
+    _lifecycleListener.dispose();
+    super.dispose();
   }
 }

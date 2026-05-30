@@ -61,7 +61,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyAjsYC4_HShYsNvrV7kF5nUrjPAtQYhfAQ',
-    appId: '1:585846035775:android:782136e0d9b4c7c80caf8a',
+    appId: '1:585846035775:android:af9510030311571d0caf8a',
     messagingSenderId: '585846035775',
     projectId: 'bazar-cozy',
     storageBucket: 'bazar-cozy.firebasestorage.app',

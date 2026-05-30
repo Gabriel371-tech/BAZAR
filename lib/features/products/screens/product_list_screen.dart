@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/colors.dart';
-import '../../../core/services/notification_service.dart';
 import '../../auth/services/auth_provider.dart';
 import '../../cart/screens/cart_screen.dart';
 import '../../cart/services/cart_provider.dart';
@@ -397,7 +396,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -413,7 +412,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
               children: [
                 Container(
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
+                    color: AppColors.primary.withValues(alpha: 0.1),
                     borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(12),
                     ),

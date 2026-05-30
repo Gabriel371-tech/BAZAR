@@ -16,8 +16,8 @@ class PurchaseSuccessScreen extends StatelessWidget {
   });
 
   String get pixCode {
-    final amount = totalAmount.toStringAsFixed(2).replaceAll('.', ',');
-    return '00020101021226850014BR.GOV.BCB.PIX0114+551199999999520400005303986540${totalAmount.toStringAsFixed(2)}5802BR5925Bazar Cozy Commerce6009SAO PAULO62070503***6304';
+    final amount = totalAmount.toStringAsFixed(2);
+    return '00020101021226850014BR.GOV.BCB.PIX01141551199999999520400005303986540${amount}5802BR5925Bazar Cozy Commerce6009SAO PAULO62070503***6304';
   }
 
   void _copyPixCode(BuildContext context) {
@@ -47,7 +47,7 @@ class PurchaseSuccessScreen extends StatelessWidget {
               child: Column(
                 children: const [
                   FaIcon(
-                    FontAwesomeIcons.checkCircle,
+                    FontAwesomeIcons.circleCheck,
                     size: 72,
                     color: AppColors.success,
                   ),

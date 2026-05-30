@@ -4,7 +4,6 @@ import '../../../core/constants/colors.dart';
 import '../../../core/widgets/bazar_button.dart';
 import '../../../core/widgets/bazar_text_field.dart';
 import '../../auth/services/auth_provider.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
