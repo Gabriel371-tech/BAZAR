@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -14,6 +16,9 @@ class NotificationService {
   static final FlutterLocalNotificationsPlugin _notificationsPlugin =
       FlutterLocalNotificationsPlugin();
   static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
+  static String? _fcmToken;
+
+  static String? get fcmToken => _fcmToken;
 
   static Future<void> init() async {
     tzdata.initializeTimeZones();
@@ -55,8 +60,20 @@ class NotificationService {
     }
 
     // Obtém o token do dispositivo
-    String? token = await _messaging.getToken();
-    debugPrint("FCM Token: $token");
+    _fcmToken = await _messaging.getToken();
+    debugPrint("FCM Token inicial: $_fcmToken");
+
+    // Listener para atualização de token
+    _messaging.onTokenRefresh.listen((newToken) {
+      _fcmToken = newToken;
+      debugPrint("FCM Token atualizado: $_fcmToken");
+      
+      // Se já houver um usuário logado, atualiza no Firestore imediatamente
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        saveTokenToFirestore(user.uid);
+      }
+    });
 
     // Configura o handler de segundo plano
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
@@ -260,5 +277,25 @@ class NotificationService {
   /// Cancela todas as notificações
   static Future<void> cancelAllNotifications() async {
     await _notificationsPlugin.cancelAll();
+  }
+
+  /// Salva o token FCM no Firestore para o usuário logado
+  static Future<void> saveTokenToFirestore(String uid) async {
+    try {
+      if (_fcmToken == null) {
+        _fcmToken = await _messaging.getToken();
+      }
+
+      if (_fcmToken != null) {
+        await FirebaseFirestore.instance.collection('users').doc(uid).set({
+          'fcmToken': _fcmToken,
+          'lastTokenUpdate': FieldValue.serverTimestamp(),
+          'platform': 'android', // No futuro pode ser dinâmico
+        }, SetOptions(merge: true));
+        debugPrint("Token FCM salvo no Firestore para o UID: $uid");
+      }
+    } catch (e) {
+      debugPrint("Erro ao salvar token FCM no Firestore: $e");
+    }
   }
 }

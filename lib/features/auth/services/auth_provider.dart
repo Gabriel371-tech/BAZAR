@@ -22,6 +22,7 @@ class AuthProvider with ChangeNotifier {
       _user = user;
       if (user != null) {
         _loadUserData();
+        NotificationService.saveTokenToFirestore(user.uid);
       } else {
         _userData = null;
         notifyListeners();
